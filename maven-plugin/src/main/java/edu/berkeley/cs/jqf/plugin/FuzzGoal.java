@@ -291,6 +291,8 @@ public class FuzzGoal extends AbstractMojo {
             System.setProperty("jqf.ei.GENERATE_EOF_WHEN_OUT", String.valueOf(true));
         }
 
+        System.setProperty("jqf.ei.MAX_INPUT_SIZE", String.valueOf(999999999));
+
         Duration duration = null;
         if (time != null && !time.isEmpty()) {
             try {

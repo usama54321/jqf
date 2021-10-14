@@ -716,6 +716,10 @@ public abstract class AbstractLogger implements Logger {
     log(new SPECIAL(i));
   }
 
+  public void INFERENCE(Object data) {
+    log(new INFERENCE(data));
+  }
+
   public void flush() {
     log(null);
   }

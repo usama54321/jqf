@@ -357,5 +357,7 @@ public interface IVisitor {
 
   public void visitSPECIAL(SPECIAL inst);
 
+  public void visitINFERENCE(INFERENCE inst);
+
   public void setNext(Instruction next);
 }

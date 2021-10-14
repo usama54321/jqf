@@ -929,4 +929,10 @@ public class DefaultInstructionVisitor implements IVisitor {
     public void setNext(Instruction next) {
 
     }
+
+    @Override
+    public void visitINFERENCE(INFERENCE e) {
+
+    }
+
 }

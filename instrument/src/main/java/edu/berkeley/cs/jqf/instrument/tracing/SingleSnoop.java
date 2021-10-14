@@ -1019,6 +1019,11 @@ public final class SingleSnoop {
         try { intp.SPECIAL(i); } finally { block.set(false); }
     }
 
+    public static void INFERENCE(Object i) {
+        if (block.get()) return; else block.set(true);
+        try { intp.INFERENCE(i); } finally { block.set(false); }
+    }
+
     public static void MAKE_SYMBOLIC() {
         if (block.get()) return; else block.set(true);
         try { intp.MAKE_SYMBOLIC(); } finally { block.set(false); }

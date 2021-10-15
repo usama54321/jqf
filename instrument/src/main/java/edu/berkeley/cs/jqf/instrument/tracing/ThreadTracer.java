@@ -183,6 +183,12 @@ public class ThreadTracer {
     }
 
 
+    class InferenceEventHandler extends DefaultInstructionVisitor {
+        public void visitINFERENCE(INFERENCE e) {
+            System.out.println(e.toString());
+            handlers.pop();
+        }
+    }
 
     class BaseHandler extends ControlFlowInstructionVisitor {
         @Override
@@ -224,10 +230,16 @@ public class ThreadTracer {
 
         @Override
         public void visitMETHOD_BEGIN(METHOD_BEGIN begin) {
+            String clazz = begin.getOwner();
+            String method = begin.getName();
             if ((MATCH_CALLEE_NAMES == false && begin.name.equals("<clinit>") == false) || sameNameDesc(begin, this.invokeTarget)) {
                 // Trace continues with callee
                 int invokerIid = invokeTarget != null ? ((Instruction) invokeTarget).iid : -1;
                 int invokerMid = invokeTarget != null ? ((Instruction) invokeTarget).mid : -1;
+                if (clazz.equals("edu/berkeley/cs/jqf/examples/RobustnessTest") && method.equals("print")) {
+                    handlers.push(new MatchingNullHandler());
+                    handlers.push(new InferenceEventHandler());
+                }
                 emit(new CallEvent(invokerIid, this.method, invokerMid, begin));
                 handlers.push(new TraceEventGeneratingHandler(begin, depth+1));
             } else {

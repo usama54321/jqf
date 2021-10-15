@@ -706,6 +706,11 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
 
     mv.visitLabel(begin);
     mv.visitMethodInsn(opcode, owner, name, desc, itf);
+    if (owner.equals("edu/berkeley/cs/jqf/examples/RobustnessTest") && name.equals("print")) {
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESTATIC, Config.instance.analysisClass, "INFERENCE", "(Ljava/lang/Object;)V", false);
+    }
+
     mv.visitJumpInsn(GOTO, end);
 
     mv.visitLabel(handler);

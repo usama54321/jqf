@@ -32,6 +32,7 @@ package edu.berkeley.cs.jqf.instrument.tracing;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import edu.berkeley.cs.jqf.instrument.InstrumentationException;
@@ -41,6 +42,8 @@ import edu.berkeley.cs.jqf.instrument.tracing.events.CallEvent;
 import edu.berkeley.cs.jqf.instrument.tracing.events.ReadEvent;
 import edu.berkeley.cs.jqf.instrument.tracing.events.ReturnEvent;
 import edu.berkeley.cs.jqf.instrument.tracing.events.TraceEvent;
+import edu.berkeley.cs.jqf.instrument.tracing.events.InferenceEvent;
+import edu.berkeley.cs.jqf.instrument.util.Util;
 import janala.logger.inst.*;
 
 /**
@@ -185,7 +188,7 @@ public class ThreadTracer {
 
     class InferenceEventHandler extends DefaultInstructionVisitor {
         public void visitINFERENCE(INFERENCE e) {
-            System.out.println(e.toString());
+            emit(new InferenceEvent(-1, null, -1, e.getData()));
             handlers.pop();
         }
     }
@@ -236,7 +239,7 @@ public class ThreadTracer {
                 // Trace continues with callee
                 int invokerIid = invokeTarget != null ? ((Instruction) invokeTarget).iid : -1;
                 int invokerMid = invokeTarget != null ? ((Instruction) invokeTarget).mid : -1;
-                if (clazz.equals("edu/berkeley/cs/jqf/examples/RobustnessTest") && method.equals("print")) {
+                if (Util.isInferenceMethod(clazz, method)) {
                     handlers.push(new MatchingNullHandler());
                     handlers.push(new InferenceEventHandler());
                 }

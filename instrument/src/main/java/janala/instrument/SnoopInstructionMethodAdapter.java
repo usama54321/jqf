@@ -6,6 +6,7 @@ import janala.logger.inst.SPECIAL;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import edu.berkeley.cs.jqf.instrument.util.Util;
 
 public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opcodes {
   boolean isInit;
@@ -706,7 +707,7 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
 
     mv.visitLabel(begin);
     mv.visitMethodInsn(opcode, owner, name, desc, itf);
-    if (owner.equals("edu/berkeley/cs/jqf/examples/RobustnessTest") && name.equals("print")) {
+    if (Util.isInferenceMethod(owner, name)) {
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESTATIC, Config.instance.analysisClass, "INFERENCE", "(Ljava/lang/Object;)V", false);
     }

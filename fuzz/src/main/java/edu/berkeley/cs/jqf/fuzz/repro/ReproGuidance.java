@@ -72,13 +72,13 @@ import org.jacoco.report.csv.CSVFormatter;
  */
 public class ReproGuidance implements Guidance {
     private final File[] inputFiles;
-    private final File traceDir;
+    protected final File traceDir;
     private int nextFileIdx = 0;
     private List<PrintStream> traceStreams = new ArrayList<>();
     private InputStream inputStream;
-    private Coverage coverage = new Coverage();
+    protected Coverage coverage = new Coverage();
 
-    private Set<String> branchesCoveredInCurrentRun;
+    protected Set<String> branchesCoveredInCurrentRun;
     private Set<String> allBranchesCovered;
     private boolean ignoreInvalidCoverage;
     private boolean printArgs;
@@ -405,4 +405,5 @@ public class ReproGuidance implements Guidance {
         }
     }
 
+    public void save() {}
 }

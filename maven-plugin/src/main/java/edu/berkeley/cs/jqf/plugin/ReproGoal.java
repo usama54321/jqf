@@ -41,6 +41,7 @@ import java.util.TreeSet;
 
 import edu.berkeley.cs.jqf.fuzz.junit.GuidedFuzzing;
 import edu.berkeley.cs.jqf.fuzz.repro.ReproGuidance;
+import edu.berkeley.cs.jqf.fuzz.repro.ReproTfGuidance;
 import edu.berkeley.cs.jqf.instrument.InstrumentingClassLoader;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -64,6 +65,9 @@ public class ReproGoal extends AbstractMojo {
 
     @Parameter(defaultValue="${project}", required=true, readonly=true)
     MavenProject project;
+
+    @Parameter(property="engine", defaultValue="zest")
+    private String engine;
 
     @Parameter(defaultValue="${project.build.directory}", readonly=true)
     private File target;
@@ -139,6 +143,10 @@ public class ReproGoal extends AbstractMojo {
     @Parameter(property="includes")
     private String includes;
 
+    @Parameter(property="includeOnly")
+    private String includeOnly;
+
+
     /**
      * Whether to print the args to each test case.
      *
@@ -171,6 +179,8 @@ public class ReproGoal extends AbstractMojo {
     @Parameter(property="dumpArgsDir")
     private String dumpArgsDir;
 
+    @Parameter(property="out", defaultValue="coverage")
+    private String out;
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         ClassLoader loader;
@@ -185,6 +195,9 @@ public class ReproGoal extends AbstractMojo {
         }
         if (includes != null) {
             System.setProperty("janala.includes", includes);
+        }
+        if (includeOnly != null) {
+            System.setProperty("janala.includeOnly", includeOnly);
         }
 
         try {
@@ -218,8 +231,18 @@ public class ReproGoal extends AbstractMojo {
         }
 
         try {
-            guidance = new ReproGuidance(inputFile, null);
+            Thread.currentThread().setContextClassLoader(loader);
+            switch (engine) {
+                case "zest":
+                default:
+                    guidance = new ReproGuidance(inputFile, new File(this.out));
+                    break;
+                case "tf":
+                    guidance = new ReproTfGuidance(inputFile, new File(this.out));
+                    break;
+            }
             result = GuidedFuzzing.run(testClassName, testMethod, loader, guidance, out);
+            guidance.save();
         } catch (ClassNotFoundException e) {
             throw new MojoExecutionException("Could not load test class", e);
         } catch (IllegalArgumentException e) {

@@ -1115,6 +1115,8 @@ public class ZestGuidance implements Guidance {
         public abstract int size();
         public abstract Input fuzz(Random random);
         public abstract void gc();
+        //@TODO hacky fix this
+        public void add(Integer key){};
 
         /**
          * Returns whether this input should be favored for fuzzing.

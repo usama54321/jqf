@@ -394,6 +394,7 @@ public class FuzzGoal extends AbstractMojo {
         }
 
         try {
+            Thread.currentThread().setContextClassLoader(loader);
             result = GuidedFuzzing.run(testClassName, testMethod, loader, guidance, out);
         } catch (ClassNotFoundException e) {
             throw new MojoExecutionException("Could not load test class", e);

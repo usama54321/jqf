@@ -3,7 +3,7 @@ package edu.berkeley.cs.jqf.instrument.util;
 public class Util {
     private static String[] SIGNATURES = {
         //"edu/berkeley/cs/jqf/examples/InferenceTest.infer",
-        //"org/nd4j/tensorflow/conversion/graphrunner/GraphRunner.run"
+        "org/nd4j/tensorflow/conversion/graphrunner/GraphRunner.run"
     };
 
     public static boolean isInferenceMethod(String owner, String method) {

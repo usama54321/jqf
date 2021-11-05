@@ -15,6 +15,7 @@ class Config {
   public final String analysisClass;
   public final String[] excludeInst;
   public final String[] includeInst;
+  public final String[] includeOnly;
   public final boolean instrumentHeapLoad;
   public final boolean instrumentAlloc;
   public final String instrumentationCacheDir;
@@ -50,6 +51,14 @@ class Config {
       }
 
       String includeInstStr = properties.getProperty("janala.includes", null);
+      String includeOnlyStr = properties.getProperty("janala.includeOnly", null);
+
+      if (includeOnlyStr != null) {
+        includeOnly = includeOnlyStr.replace(".", "/").split(",");
+      } else {
+        includeOnly = null;
+      }
+
       if (includeInstStr != null) {
           includeInst = includeInstStr.replace('.', '/').split(",");
       } else {

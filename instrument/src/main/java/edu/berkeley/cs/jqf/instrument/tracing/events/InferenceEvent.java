@@ -20,4 +20,8 @@ public class InferenceEvent extends TraceEvent {
     public void applyVisitor(TraceEventVisitor v) {
         v.visitInferenceEvent(this);
     }
+
+    public Object getData() {
+        return data;
+    }
 }

@@ -23,6 +23,8 @@ public class SnoopInstructionTransformer implements ClassFileTransformer {
   private static String[] banned = {"[", "java/lang", "janala", "org/objectweb/asm", "sun", "jdk", "java/util/function"};
   private static String[] excludes = Config.instance.excludeInst;
   private static String[] includes = Config.instance.includeInst;
+  private static String[] includeOnly = Config.instance.includeOnly;
+
   public static void premain(String agentArgs, Instrumentation inst) throws ClassNotFoundException {
 
     preloadClasses();
@@ -67,6 +69,17 @@ public class SnoopInstructionTransformer implements ClassFileTransformer {
         return true;
       }
     }
+
+    if (includeOnly != null) {
+      for (String e: includeOnly) {
+        if (cname.startsWith(e)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
     for (String e : includes) {
       if (cname.startsWith(e)) {
         return false;

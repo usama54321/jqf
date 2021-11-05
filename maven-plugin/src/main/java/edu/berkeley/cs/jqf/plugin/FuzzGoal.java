@@ -42,6 +42,7 @@ import java.util.Random;
 
 import edu.berkeley.cs.jqf.fuzz.ei.ExecutionIndexingGuidance;
 import edu.berkeley.cs.jqf.fuzz.ei.ZestGuidance;
+import edu.berkeley.cs.jqf.fuzz.tf.TfGuidance;
 import edu.berkeley.cs.jqf.fuzz.guidance.GuidanceException;
 import edu.berkeley.cs.jqf.fuzz.junit.GuidedFuzzing;
 import edu.berkeley.cs.jqf.instrument.InstrumentingClassLoader;
@@ -286,6 +287,12 @@ public class FuzzGoal extends AbstractMojo {
     private boolean fixedSizeInputs;
 
 
+    @Parameter(property="verbose")
+    private boolean verbose;
+
+    @Parameter(property="includeOnly")
+    private String includeOnly;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         ClassLoader loader;
@@ -300,6 +307,15 @@ public class FuzzGoal extends AbstractMojo {
         }
         if (includes != null) {
             System.setProperty("janala.includes", includes);
+        }
+
+        if (includeOnly != null) {
+            //System.out.println("include only setting to " + includeOnly);
+            System.setProperty("janala.includeOnly", includeOnly);
+        }
+
+        if (verbose) {
+            System.setProperty("janala.verbose", "true");
         }
 
         // Configure Zest Guidance
@@ -336,7 +352,7 @@ public class FuzzGoal extends AbstractMojo {
         }
 
         try {
-            List<String> classpathElements = project.getTestClasspathElements();
+            List<String> classpathElements = project.getTestClasspathElements();//project.getRuntimeClasspathElements();
 
             if (disableCoverage) {
                 loader = new URLClassLoader(
@@ -361,9 +377,10 @@ public class FuzzGoal extends AbstractMojo {
                 case "zest":
                     guidance = new ZestGuidance(targetName, duration, trials, resultsDir, seedsDir, rnd);
                     break;
+                case "tf":
+                    guidance = new TfGuidance(targetName, duration, trials, resultsDir, seedsDir, rnd);
+                    break;
                 case "zeal":
-                    System.setProperty("jqf.tracing.TRACE_GENERATORS", "true");
-                    System.setProperty("jqf.tracing.MATCH_CALLEE_NAMES", "true");
                     guidance = new ExecutionIndexingGuidance(targetName, duration, trials, resultsDir, seedsDir, rnd);
                     break;
                 default:

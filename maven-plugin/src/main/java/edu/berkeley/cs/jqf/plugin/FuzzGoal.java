@@ -368,7 +368,12 @@ public class FuzzGoal extends AbstractMojo {
             throw new MojoExecutionException("Could not get project classpath", e);
         }
 
-        File resultsDir = new File(target, outputDirectory);
+        File temp = new File(outputDirectory);
+        File resultsDir = null;
+        if (temp.isAbsolute())
+            resultsDir = temp;
+        else
+            resultsDir = new File(target, outputDirectory);
         String targetName = testClassName + "#" + testMethod;
         File seedsDir = inputDirectory == null ? null : new File(inputDirectory);
         Random rnd = randomSeed != null ? new Random(randomSeed) : new Random();

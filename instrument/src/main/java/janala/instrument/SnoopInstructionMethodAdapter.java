@@ -844,6 +844,7 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
   private void addConditionalJumpInstrumentation(int opcode, Label finalBranchTarget,
                                                  String instMethodName, String instMethodDesc) {
     int iid = instrumentationState.incAndGetId();
+    Util.onBranch(iid, instMethodName, className, lastLineNumber);
     Label intermediateBranchTarget = new Label();
     Label fallthrough = new Label();
 
@@ -1002,6 +1003,8 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
     addValueReadInsn(mv, "I", "GETVALUE_");
     // Log switch instruction
     addBipushInsn(mv, instrumentationState.incAndGetId());
+
+    Util.onBranch(instrumentationState.getId(), methodName, className, lastLineNumber);
     addBipushInsn(mv, lastLineNumber);
     addBipushInsn(mv, min);
     addBipushInsn(mv, max);
@@ -1026,6 +1029,7 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
     addValueReadInsn(mv, "I", "GETVALUE_");
     // Log switch instruction
     addBipushInsn(mv, instrumentationState.incAndGetId());
+    Util.onBranch(instrumentationState.getId(), methodName, className, lastLineNumber);
     addBipushInsn(mv, lastLineNumber);
     addBipushInsn(mv, getLabelNum(dflt));
 

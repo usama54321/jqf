@@ -139,68 +139,6 @@ public class ReproTfCoverage extends Coverage {
 
 
         addToCoverage(e.getContainingClass(), e.getContainingMethodName(), e.getLineNumber(), e.getArm(), e.getLineNumber(), getCurrentCoverage());
-        /*
-
-        String cls = e.getContainingClass();
-        String methodName = e.getContainingMethodName() + "." + e.getContainingMethodDesc();
-        Set<String> methods;
-
-        if(classMethodMap.containsKey(cls)) {
-            methods = classMethodMap.get(cls);
-        } else {
-            methods = new TreeSet<>();
-            classMethodMap.put(cls, methods);
-        }
-
-        methods.add(methodName);
-
-        int iid = e.getIid();
-        int arm = e.getArm();
-
-        Set<Integer> iids;
-        if (methodMapping.containsKey(methodName)) {
-            iids = methodMapping.get(methodName);
-        } else {
-            iids = new TreeSet<>();
-            methodMapping.put(methodName, iids);
-        }
-        iids.add(iid);
-
-        methodMapping.put(methodName, iids);
-
-        int left, right;
-        BranchData kv;
-        if (iidMapping.containsKey(iid)) {
-            kv = iidMapping.get(iid);
-        } else {
-            kv = new BranchData();
-        }
-
-        kv.trueTaken += (arm == 0 ? 1 : 0);
-        kv.falseTaken += (arm == 0 ? 0: 1);
-        kv.lineNumber = e.getLineNumber();
-
-        iidMapping.put(iid, kv);
-
-        //mapping.put(key, count);
-        //super.visitBranchEvent(e);
-        */
-
-        /*
-        if(testCount % 1000 == 0) {
-            System.out.printf("methods size %d\n", methodMapping.size());
-            for(Map.Entry<String, Set<Integer>> kv: methodMapping.entrySet()) {
-                System.out.printf("Method %s\n", kv.getKey());
-                Set<Integer> iids = kv.getValue();
-                System.out.printf("iid left right\n");
-                for(Integer iid: iids) {
-                    AbstractMap.SimpleEntry<Integer, Integer> nkv = iidMapping.get(iid);
-                    System.out.printf("%d %d %d\n", iid, nkv.getKey(), nkv.getValue());
-                }
-                System.out.printf("\n");
-            }
-                //System.out.printf("%s %d\n", kv.getKey(), kv.getValue());
-        }*/
     }
 
     public void setCurrentCoverage(int index) {

@@ -1,8 +1,11 @@
 package janala.instrument;
 
+import edu.berkeley.cs.jqf.instrument.util.Stats;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -155,7 +158,11 @@ public class SnoopInstructionTransformer implements ClassFileTransformer {
           File cachedFile = new File(instDir + "/" + cname + ".instrumented.class");
           File referenceFile = new File(instDir + "/" + cname + ".original.class");
           File parent = new File(cachedFile.getParent());
+          File stats = new File(instDir + "/stats.csv");
           parent.mkdirs();
+          try(PrintWriter p = new PrintWriter(new FileOutputStream(stats))) {
+              p.println(Stats.asString());
+          }
           try(FileOutputStream out = new FileOutputStream(cachedFile)) {
             out.write(ret);
           }

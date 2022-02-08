@@ -30,6 +30,8 @@ import edu.berkeley.cs.jqf.fuzz.guidance.Guidance;
 import edu.berkeley.cs.jqf.fuzz.guidance.GuidanceException;
 import edu.berkeley.cs.jqf.fuzz.guidance.Result;
 import edu.berkeley.cs.jqf.fuzz.guidance.TimeoutException;
+import edu.berkeley.cs.jqf.fuzz.tf.data.Image;
+import edu.berkeley.cs.jqf.fuzz.tf.data.Text;
 import edu.berkeley.cs.jqf.fuzz.util.Hashing;
 import edu.berkeley.cs.jqf.instrument.tracing.events.BranchEvent;
 import edu.berkeley.cs.jqf.instrument.tracing.events.CallEvent;
@@ -37,6 +39,7 @@ import edu.berkeley.cs.jqf.instrument.tracing.events.TraceEvent;
 import edu.berkeley.cs.jqf.fuzz.util.Coverage;
 import edu.berkeley.cs.jqf.fuzz.ei.ZestGuidance;
 import edu.berkeley.cs.jqf.fuzz.ei.ZestGuidance.LinearInput;
+//import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -48,6 +51,8 @@ import java.awt.image.Raster;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+
 public class TfGuidance extends ZestGuidance
 {
     File inputDirectory;
@@ -59,6 +64,7 @@ public class TfGuidance extends ZestGuidance
 
     //@TODO fix this hack
     public class ImageInput extends LinearInput {
+        @Override
         public void add(Integer pixel) {
             this.values.add(pixel);
         }
@@ -79,75 +85,20 @@ public class TfGuidance extends ZestGuidance
      * Assumes reads only happen in blocks of four bytes.
      * Also, read TODO below
      */
-    public class ByteBufferBackedInputStream extends InputStream {
 
-        int index;
-        int[] data;
-        int count;
-        boolean isInit;
-
-        public ByteBufferBackedInputStream(int[] buf) {
-            this.data = buf;
-            int[] transpose = new int[buf.length];
-
-            //@FIXME slow
-            for(int i = 0; i < IMG_SIZE; i++) {
-                for(int j = 0; j < IMG_SIZE; j++) {
-                    transpose[i * IMG_SIZE + j] = buf[j * IMG_SIZE + i];
-                }
-            }
-
-            this.data = transpose;
-            index = 0;
-            count = 0;
-            isInit = false;
-        }
-
-        public int read() throws IOException {
-            assert(false);
-            return 220;
-        }
-
-        public int read(byte[] bytes, int off, int len)
-                throws IOException {
-                assert(len == 4);
-
-                //@TODO resetting input stream the first time. Tailored for mtcnn example for now
-                if (!isInit && index == 2) {
-                    index = 0;
-                    isInit = true;
-                }
-
-                //System.out.printf("reading index %d", index);
-                if(index >= IMG_SIZE * IMG_SIZE) {
-                    assert(false);
-                }
-
-                int data = this.data[index];
-                count++;
-                byte[] arr = ByteBuffer.allocate(4).putInt(data).array();
-
-                for (int i = 0; i < len; i++) {
-                    bytes[i] = arr[3-i];
-                }
-
-                index += 1;
-
-                currentInput.add((int) arr[0]);
-                currentInput.add((int) arr[1]);
-                currentInput.add((int) arr[2]);
-                currentInput.add((int) arr[3]);
-                return len;
-        }
+    public TfGuidance(String testName, Duration duration, Long trials, File outputDirectory, File inputDirectory, Random sourceOfRandomness, int inputWidth, int inputHeight ) throws IOException {
+        this(testName, duration, trials, outputDirectory, new File("/home/usama/ml_system/datasets/vgg_face/extracted/Abbie_Cornish.txt"), sourceOfRandomness);
     }
 
     public TfGuidance(String testName, Duration duration, Long trials, File outputDirectory, File inputDirectory, Random sourceOfRandomness) throws IOException {
         super(testName, duration, trials, outputDirectory, new File("/home/usama/ml_system/datasets/vgg_face/extracted/Abbie_Cornish.txt"), sourceOfRandomness);
         System.setProperty("jqf.ei.MAX_INPUT_SIZE", "999999999");
-        //System.setProperty("janala.instrumentationCacheDir", "./instr");
-        //runCoverage = new InferenceCoverage();
-        //totalCoverage = new InferenceCoverage();
-        //validCoverage = new InferenceCoverage();
+
+
+        this.runCoverage = new InferenceCoverage();
+        this.totalCoverage = new InferenceCoverage();
+        this.validCoverage = new InferenceCoverage();
+
         this.inputDirectory = inputDirectory;
         this.paths = new ArrayList<>();
         index = 0;
@@ -155,10 +106,28 @@ public class TfGuidance extends ZestGuidance
         Files.walk(Paths.get(this.inputDirectory.getPath()))
             .filter(Files::isRegularFile)
             .forEach(path -> {
+                //System.out.println(file.toString());
                 this.paths.add(path);
             });
     }
 
+    private boolean isImages() {
+        Path path = this.paths.get(0);
+        String mimetype = null;
+        try {
+            mimetype = Files.probeContentType(path);
+        }catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("LOG: Warning returning as images");
+            return true;
+        }
+
+        if (mimetype != null && mimetype.split("/")[0].equals("image")) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * return next file from the directory
@@ -166,31 +135,36 @@ public class TfGuidance extends ZestGuidance
     public InputStream getInput() {
         runCoverage.clear();
         currentInput = createFreshInput();
-        BufferedImage image = null;
-        BufferedImage orig = null;
-        try {
-            orig = ImageIO.read(new File(this.paths.get(this.index).toString()));
-            //hacky way to resize to input img size
-            image = new BufferedImage(IMG_SIZE, IMG_SIZE, BufferedImage.TYPE_INT_RGB);
-            Graphics g = image.createGraphics();
-            g.drawImage(orig, 0, 0, IMG_SIZE, IMG_SIZE, null);
+
+        if (isImages()) {
+            BufferedImage image = null;
+            BufferedImage orig = null;
+            try {
+                image = ImageIO.read(new File(this.paths.get(this.index).toString()));
+            } catch (Exception e) {
+                System.out.println("failed to read file");
+                e.printStackTrace();
+                return null;
+            }
+
+            BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_3BYTE_BGR);
+
+            Graphics2D g = newImage.createGraphics();
+            g.drawImage(image, 0, 0, null);
             g.dispose();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            this.index++;
+
+            //for now hardcoded to images since only format supported
+            return new Image().getImageAsInputStream(newImage, currentInput);
+        } else {
+            File file = this.paths.get(0).toFile();
+            try {
+                //System.out.println(file.toString());
+                return new Text().getAsInputStream(file, currentInput, this.index++);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         }
-        Raster raster = image.getData();
-        int[] data = new int[raster.getWidth() * raster.getHeight() * raster.getNumBands()];
-        raster.getPixels(0, 0,  raster.getWidth(), raster.getHeight(), data);
-
-        DataBufferInt buffer = (DataBufferInt) raster.getDataBuffer();
-        this.index++;
-        return new ByteBufferBackedInputStream(buffer.getData());
     }
-
-
-    /**
-     * collect coverage results
-     */
-     
 }

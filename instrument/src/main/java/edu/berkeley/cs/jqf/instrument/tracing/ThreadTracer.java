@@ -188,7 +188,7 @@ public class ThreadTracer {
 
     class InferenceEventHandler extends DefaultInstructionVisitor {
         public void visitINFERENCE(INFERENCE e) {
-            emit(new InferenceEvent(-1, null, -1, e.getData()));
+            emit(new InferenceEvent(-1, null, e.mid, e.getData(), e.clazz, e.method));
             handlers.pop();
         }
     }
@@ -232,6 +232,19 @@ public class ThreadTracer {
         private boolean invokingSuperOrThis = false;
 
         @Override
+        public void visitINVOKEVIRTUAL(INVOKEVIRTUAL inst) {
+            visitInvokeInstruction(inst);
+            String clazz = inst.getOwner();
+            String method = inst.getName();
+
+            if (Util.isInferenceMethod(clazz, method)) {
+                handlers.push(new InferenceEventHandler());
+            }
+
+            super.visitINVOKEVIRTUAL(inst);
+        }
+
+        @Override
         public void visitMETHOD_BEGIN(METHOD_BEGIN begin) {
             String clazz = begin.getOwner();
             String method = begin.getName();
@@ -239,10 +252,6 @@ public class ThreadTracer {
                 // Trace continues with callee
                 int invokerIid = invokeTarget != null ? ((Instruction) invokeTarget).iid : -1;
                 int invokerMid = invokeTarget != null ? ((Instruction) invokeTarget).mid : -1;
-                if (Util.isInferenceMethod(clazz, method)) {
-                    handlers.push(new MatchingNullHandler());
-                    handlers.push(new InferenceEventHandler());
-                }
                 emit(new CallEvent(invokerIid, this.method, invokerMid, begin));
                 handlers.push(new TraceEventGeneratingHandler(begin, depth+1));
             } else {

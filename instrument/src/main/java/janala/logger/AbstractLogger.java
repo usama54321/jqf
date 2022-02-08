@@ -716,8 +716,8 @@ public abstract class AbstractLogger implements Logger {
     log(new SPECIAL(i));
   }
 
-  public void INFERENCE(Object data) {
-    log(new INFERENCE(data));
+  public void INFERENCE(Object data, int lineNumber, String clazz, String method) {
+    log(new INFERENCE(data, lineNumber, clazz, method));
   }
 
   public void flush() {

@@ -5,10 +5,13 @@ import janala.logger.inst.MemberRef;
 public class InferenceEvent extends TraceEvent {
 
     Object data;
+    public String clazz, method;
 
-    public InferenceEvent(int iid, MemberRef containingMethod, int lineNumber, Object data) {
+    public InferenceEvent(int iid, MemberRef containingMethod, int lineNumber, Object data, String clazz, String method) {
         super(iid, containingMethod, lineNumber);
         this.data = data;
+        this.clazz = clazz;
+        this.method = method;
     }
 
     @Override

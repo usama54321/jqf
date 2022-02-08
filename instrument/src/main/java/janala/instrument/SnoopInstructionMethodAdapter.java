@@ -5,7 +5,9 @@ import java.util.LinkedList;
 import janala.logger.inst.SPECIAL;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import edu.berkeley.cs.jqf.instrument.util.Util;
 
 public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opcodes {
@@ -23,6 +25,8 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
 
   private final GlobalStateForInstrumentation instrumentationState;
 
+  boolean shouldInstrument;
+
   public SnoopInstructionMethodAdapter(MethodVisitor mv, String className,
       String methodName, String descriptor, String superName,
       GlobalStateForInstrumentation instrumentationState) {
@@ -33,6 +37,7 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
     this.methodName = methodName;
     this.descriptor = descriptor;
     this.superName = superName;
+    this.shouldInstrument = true;
     tryCatchBlocks = new LinkedList<>();
 
     this.instrumentationState = instrumentationState;
@@ -99,6 +104,10 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
 
   @Override
   public void visitInsn(int opcode) {
+      if(!shouldInstrument) {
+          super.visitInsn(opcode);
+          return;
+      }
     switch (opcode) {/*
       case NOP:
         addInsn(mv, "NOP", opcode);
@@ -708,8 +717,16 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
     mv.visitLabel(begin);
     mv.visitMethodInsn(opcode, owner, name, desc, itf);
     if (Util.isInferenceMethod(owner, name)) {
-        mv.visitInsn(DUP);
-        mv.visitMethodInsn(INVOKESTATIC, Config.instance.analysisClass, "INFERENCE", "(Ljava/lang/Object;)V", false);
+        if (owner.contains("Graph")) {
+            mv.visitInsn(DUP);
+        } else {
+            // need to send in Interpreter object, which is
+            mv.visitVarInsn(ALOAD, 0);
+        }
+        addBipushInsn(mv, lastLineNumber);
+        mv.visitLdcInsn(className);
+        mv.visitLdcInsn(methodName);
+        mv.visitMethodInsn(INVOKESTATIC, Config.instance.analysisClass, "INFERENCE", "(Ljava/lang/Object;ILjava/lang/String;Ljava/lang/String;)V", false);
     }
 
     mv.visitJumpInsn(GOTO, end);
@@ -864,6 +881,10 @@ public class SnoopInstructionMethodAdapter extends MethodVisitor implements Opco
     if (isInit && !isSuperInitCalled) {
       // Jumps in a constructor before super() or this() mess up the analysis
       throw new RuntimeException("Cannot handle jumps before super/this");
+    }
+    if (!shouldInstrument) {
+        super.visitJumpInsn(opcode, label);
+        return;
     }
 
     switch (opcode) {

@@ -29,19 +29,27 @@ public class Image {
         int index;
         BufferedImage image;
         int count;
-        boolean isInit;
         Input<?> input;
         int width;
         int height;
+        int resetAt;
+        boolean isReset;
 
+        //@TODO Fixme currently reseting stream after two reads
         public ImageByteStream(BufferedImage image, Input<?> input) {
+            this(image, input, 2);
+        }
+
+        public ImageByteStream(BufferedImage image, Input<?> input, int resetAt) {
             this.input = input;
             this.image = image;
             this.width = image.getWidth();
             this.height = image.getHeight();
-            index = 0;
-            count = 0;
-            isInit = false;
+            this.resetAt = resetAt;
+            this.isReset = false;
+
+            this.index = 0;
+            this.count = 0;
         }
 
         public int read() throws IOException {
@@ -49,9 +57,24 @@ public class Image {
             return 220;
         }
 
+        //hacky solution and not how reset supposed to work
+        //read https://docs.oracle.com/javase/7/docs/api/java/io/InputStream.html#reset()
+        public void reset() {
+            count = 0;
+            this.isReset = true;
+        }
+
+        boolean isReset() {
+            return this.isReset;
+        }
+
         public int read(byte[] bytes, int off, int len)
                 throws IOException {
             assert(len == 4);
+
+            //@TODO resetting input stream the first time.
+            if (!isReset() && count == this.resetAt)
+                reset();
 
             int data;
             switch(count) {
@@ -71,9 +94,9 @@ public class Image {
             arr = ByteBuffer.allocate(4).putInt(data).array();
             for (int i = 0; i < len; i++) {
                 bytes[i] = arr[3-i];
-                if (isInit)
+                if (isReset()) {
                     input.add((int) bytes[i]);
-
+                }
             }
 
             count++;

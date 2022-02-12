@@ -87,11 +87,12 @@ public class TfGuidance extends ZestGuidance
      */
 
     public TfGuidance(String testName, Duration duration, Long trials, File outputDirectory, File inputDirectory, Random sourceOfRandomness, int inputWidth, int inputHeight ) throws IOException {
-        this(testName, duration, trials, outputDirectory, new File("/home/usama/ml_system/datasets/vgg_face/extracted/Abbie_Cornish.txt"), sourceOfRandomness);
+        this(testName, duration, trials, outputDirectory, new File(""), sourceOfRandomness);
     }
 
     public TfGuidance(String testName, Duration duration, Long trials, File outputDirectory, File inputDirectory, Random sourceOfRandomness) throws IOException {
-        super(testName, duration, trials, outputDirectory, new File("/home/usama/ml_system/datasets/vgg_face/extracted/Abbie_Cornish.txt"), sourceOfRandomness);
+        //@TODO FIXME not using input directory
+        super(testName, duration, trials, outputDirectory, sourceOfRandomness);
         System.setProperty("jqf.ei.MAX_INPUT_SIZE", "999999999");
 
 

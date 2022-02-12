@@ -93,8 +93,6 @@ public class TfGuidance extends ZestGuidance
     public TfGuidance(String testName, Duration duration, Long trials, File outputDirectory, File inputDirectory, Random sourceOfRandomness) throws IOException {
         //@TODO FIXME not using input directory
         super(testName, duration, trials, outputDirectory, sourceOfRandomness);
-        System.setProperty("jqf.ei.MAX_INPUT_SIZE", "999999999");
-
 
         this.runCoverage = new InferenceCoverage();
         this.totalCoverage = new InferenceCoverage();

@@ -2,15 +2,20 @@ package edu.berkeley.cs.jqf.fuzz.repro;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
+import edu.berkeley.cs.jqf.fuzz.guidance.Result;
 import edu.berkeley.cs.jqf.fuzz.util.Coverage;
 import edu.berkeley.cs.jqf.instrument.tracing.events.BranchEvent;
+import edu.berkeley.cs.jqf.instrument.tracing.events.CallEvent;
 import edu.berkeley.cs.jqf.instrument.tracing.events.InferenceEvent;
+import edu.berkeley.cs.jqf.instrument.tracing.events.TraceEvent;
 
 public class ReproTfCoverage extends Coverage {
 
@@ -19,6 +24,13 @@ public class ReproTfCoverage extends Coverage {
     public class IidBranchMap extends HashMap<Integer, BranchData> {}
     public Set<BranchData> branchData;
     int currentCoverage;
+    public long numValid = 0;
+    public long numTrials = 0;
+    public long lastNumTrials = 0;
+    public int uniqueFailures = 0;
+    protected Date startTime = new Date();
+    protected Date lastRefreshTime = startTime;
+    protected List<List<String>> plotData = new ArrayList<>();
 
     public class BranchData implements Comparable<BranchData> {
         public int trueTaken;
@@ -46,6 +58,8 @@ public class ReproTfCoverage extends Coverage {
         public String clazz;
         public String method;
 
+        public Coverage totalCoverage = new Coverage();
+
         public CoverageData() {
             this("", "", -1);
         }
@@ -66,6 +80,12 @@ public class ReproTfCoverage extends Coverage {
             this.clazz = clazz;
             this.method = method;
             this.lineNumber = lineNumber;
+        }
+
+        public void updateCoverage(TraceEvent e) {
+            //only updating for branches
+            if (e instanceof BranchEvent || e instanceof CallEvent)
+                totalCoverage.handleEvent(e);
         }
 
         public String getSignature() {
@@ -103,6 +123,14 @@ public class ReproTfCoverage extends Coverage {
         branchData = new TreeSet<>();
     }
 
+    @Override
+    public void handleEvent(TraceEvent e) {
+        super.handleEvent(e);
+
+        //currentCoverage must already be updated so this is correct
+        getCurrentCoverage().updateCoverage(e);
+    }
+
     public void addToCoverage(String cls, String methodName, int iid, int arm, int lineNumber, CoverageData cv) {
         String signature = String.format("%s.%s:%s", cls, methodName, iid);
 
@@ -125,9 +153,54 @@ public class ReproTfCoverage extends Coverage {
         this.branchData.add(kv);
     }
 
-    private CoverageData getCurrentCoverage() {
+    public CoverageData getCurrentCoverage() {
         return coverageData.get(currentCoverage);
     }
+
+    public void handleResult(Result result) {
+        numTrials++;
+        if (result == Result.SUCCESS) {
+            numValid++;
+        } else if (result == Result.FAILURE || result == Result.TIMEOUT) {
+            uniqueFailures++;
+        }
+
+        Date now = new Date();
+
+        long intervalMilliseconds = now.getTime() - lastRefreshTime.getTime();
+        long interlvalTrials = numTrials - lastNumTrials;
+
+        double intervalExecsPerSecDouble = interlvalTrials * 1000.0 / intervalMilliseconds;
+
+        int index = 0;
+        for(CoverageData data: coverageData) {
+            List<String> covData;
+            if (index >= plotData.size()) {
+                covData = new ArrayList<String>();
+                plotData.add(index, covData);
+            } else {
+                covData = plotData.get(index);
+            }
+            System.out.printf("adding at index %d\n", index);
+
+            //plotData.add(row);
+            Coverage totalCoverage = data.totalCoverage;
+            int nonZeroCount = totalCoverage.getNonZeroCount();
+            double nonZeroFraction = nonZeroCount * 100.0 / totalCoverage.size();
+
+            String plotRow = String.format("%d, %.2f%%, %d, %.2f, %d, %d",
+                TimeUnit.MILLISECONDS.toSeconds(now.getTime()),
+                nonZeroFraction, uniqueFailures, intervalExecsPerSecDouble,
+                numValid, numTrials-numValid);
+
+            covData.add(plotRow);
+            index++;
+        }
+
+        lastRefreshTime = now;
+        lastNumTrials = numTrials;
+    }
+
     //@TODO record classes too
     @Override
     public void visitBranchEvent(BranchEvent e) {

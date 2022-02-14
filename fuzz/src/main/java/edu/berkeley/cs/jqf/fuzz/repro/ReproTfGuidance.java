@@ -6,15 +6,23 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import edu.berkeley.cs.jqf.fuzz.repro.ReproTfCoverage.IidBranchMap;
 import edu.berkeley.cs.jqf.fuzz.repro.ReproTfCoverage.MethodIidMap;
 import edu.berkeley.cs.jqf.fuzz.guidance.Result;
 import edu.berkeley.cs.jqf.fuzz.repro.ReproTfCoverage.ClassMethodMap;
+import edu.berkeley.cs.jqf.fuzz.util.Coverage;
 import edu.berkeley.cs.jqf.fuzz.util.IOUtils;
+import edu.berkeley.cs.jqf.instrument.tracing.events.TraceEvent;
 
 
 public class ReproTfGuidance extends ReproGuidance {
@@ -53,6 +61,9 @@ public class ReproTfGuidance extends ReproGuidance {
         }
 
         coverageSize.add(sum);
+
+        ((ReproTfCoverage) coverage).handleResult(result);
+
     }
 
     @Override
@@ -64,6 +75,8 @@ public class ReproTfGuidance extends ReproGuidance {
 
         for(ReproTfCoverage.CoverageData cv: coverageData) {
             File f = new File(tempDir, String.format("/tf-log-%d.csv", phase));
+            File stats = new File(tempDir, String.format("/results-%d.csv", phase));
+            List<String> plotData = ((ReproTfCoverage) coverage).plotData.get(phase);
             phase += 1;
             //IidBranchMap branchMap = cv.iidMapping;
             //ClassMethodMap classMethodMap = cv.classMethodMap;
@@ -115,9 +128,12 @@ public class ReproTfGuidance extends ReproGuidance {
             */
 
             PrintWriter pw = null;
+            PrintWriter pwStats = null;
             try {
                 f.createNewFile();
+                stats.createNewFile();
                 pw = new PrintWriter(f);
+                pwStats = new PrintWriter(stats);
             }catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -127,7 +143,12 @@ public class ReproTfGuidance extends ReproGuidance {
             for(String[] row: data) {
                 pw.format("%s,%s,%s,%s,%s,%s,%s\n", row[0], row[1], row[2], row[3], row[4], row[5], row[6]);
             }
+
+            for(String row: plotData) {
+                pwStats.format("%s\n", row);
+            }
             pw.close();
+            pwStats.close();
         }
 
         File f = new File(tempDir, "/coverage_size");
